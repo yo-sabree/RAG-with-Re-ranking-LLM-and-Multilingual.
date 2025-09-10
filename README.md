@@ -1,6 +1,6 @@
 # RAG PDF Q&A App
 
-A **Streamlit** app for **Retrieval-Augmented Generation (RAG)**. Upload PDFs, build a searchable index, and ask questions. Answers are generated via **Google Gemini API**, with sources cited.
+A **Streamlit** app for **Retrieval-Augmented Generation (RAG)**. Upload PDFs, build a searchable index, and ask questions. Answers are generated via **RAG**, **Re-Ranker**, **Google Gemini API**, with sources cited.
 
 ---
 
