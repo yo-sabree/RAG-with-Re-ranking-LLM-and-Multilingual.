@@ -1,0 +1,12 @@
+python-dotenv
+numpy
+pandas
+scikit-learn
+streamlit
+PyMuPDF
+chromadb
+sentence-transformers
+torch
+transformers
+google-genai
+requests
