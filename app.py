@@ -6,9 +6,6 @@ from dotenv import load_dotenv
 load_dotenv()
 import os
 import io
-import json
-import time
-import gc
 import hashlib
 import numpy as np
 import pandas as pd
@@ -58,8 +55,7 @@ def chunk_text(text, chunk_size=CHUNK_SIZE, overlap=CHUNK_OVERLAP):
     start = 0
     while start < len(text):
         end = start + chunk_size
-        chunk = text[start:end].strip()
-        chunks.append(chunk)
+        chunks.append(text[start:end].strip())
         start = max(0, end - overlap)
         if end >= len(text):
             break
@@ -164,8 +160,10 @@ if build_index_btn and uploaded:
             st.session_state["meta"] = all_meta
             st.success(f"Indexed {len(all_chunks)} chunks")
 
-st.markdown("---")
+if "chat_memory" not in st.session_state:
+    st.session_state.chat_memory = []
 
+st.markdown("---")
 left, right = st.columns([2,3])
 with left:
     query = st.text_area("Ask a question about uploaded documents", height=160)
@@ -239,15 +237,18 @@ if search_btn:
             page = r["meta"].get("page", -1)
             snippet = r["text"].strip()
             prompt_chunks.append(f"[{src}|{page}]\n{snippet}")
-        instruction = (
-            "You are an expert assistant. When answering the USER QUESTION, follow these rules:\n"
-            "- Use ONLY the information in the SOURCES if the question requires knowledge from them.\n"
-            "- If the SOURCES do not contain enough information to answer, reply EXACTLY with INSUFFICIENT_DOCS.\n"
-            "- If the USER QUESTION is casual (e.g., greetings or small talk), respond naturally and conversationally (e.g., 'Hi, how are you?').\n"
-            "- Cite sources inline in [filename|page] format whenever you use them.\n"
-            "- Do not invent facts. Keep answers concise, direct, and accurate. End with a short sources list when sources are used."
+        memory = st.session_state.chat_memory[-2:]
+        conversation_context = ""
+        for item in memory:
+            conversation_context += f"USER: {item['query']}\nASSISTANT: {item['answer']}\n"
+        full_prompt = (
+            "You are an expert assistant. Use ONLY the information in the SOURCES.\n"
+            "If sources lack info, reply EXACTLY with INSUFFICIENT_DOCS.\n"
+            "Cite sources inline in [filename|page] format.\n"
+            "Maintain context of last 2 conversation turns.\n\n"
+            + conversation_context
+            + f"USER QUESTION:\n{query}\n\nSOURCES:\n" + "\n\n".join(prompt_chunks) + "\n\nFINAL ANSWER:"
         )
-        full_prompt = instruction + "\n\nUSER QUESTION:\n" + query.strip() + "\n\nSOURCES:\n" + "\n\n".join(prompt_chunks) + "\n\nFINAL ANSWER:"
         gemini_key = st.session_state.get("gemini_key", GEMINI_API_KEY)
         gemini_model = st.session_state.get("gemini_model", GEMINI_MODEL)
         try:
@@ -256,6 +257,9 @@ if search_btn:
             answer_text = f"Generation error: {e}"
         if not answer_text:
             answer_text = "INSUFFICIENT_DOCS"
+        st.session_state.chat_memory.append({"query": query, "answer": answer_text})
+        if len(st.session_state.chat_memory) > 2:
+            st.session_state.chat_memory = st.session_state.chat_memory[-2:]
         answer_box.success(answer_text)
         df = pd.DataFrame([{"source": r["meta"].get("source",""), "page": r["meta"].get("page",-1), "score": round(r["score"],4), "snippet": r["text"][:300]} for r in final_top])
         source_box.dataframe(df)
