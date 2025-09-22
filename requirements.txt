@@ -1,9 +1,10 @@
 streamlit
 python-dotenv
-pymupdf
+PyMuPDF
 chromadb
 sentence-transformers
 scikit-learn
 numpy
+pandas
 matplotlib
-seaborn
+google-genai
