@@ -1,6 +1,5 @@
-import pysqlite3
+import sqlite3
 import sys
-sys.modules["sqlite3"] = sys.modules["pysqlite3"]
 from dotenv import load_dotenv
 load_dotenv()
 import os
